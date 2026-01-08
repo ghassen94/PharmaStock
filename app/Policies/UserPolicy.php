@@ -16,7 +16,7 @@ class UserPolicy
 
     public function view(User $user, User $model): bool
     {
-        // Users can view themselves, clients/admins as per type
+        // Les utilisateurs peuvent se voir eux-mêmes, ainsi que les clients/administrateurs, selon leur type.
         if ($user->id === $model->id) return true;
         if ($user->hasRole('admin')) return true;
         if ($user->hasRole('client') && $model->type !== 'admin') return true;
@@ -37,10 +37,10 @@ class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
-        // Admins can delete anyone
+        // Les administrateurs peuvent supprimer n'importe qui
         if ($user->hasRole('admin')) return true;
 
-        // Clients cannot delete admins
+        // Les clients ne peuvent pas supprimer les administrateurs.
         if ($user->hasRole('client')) {
             return $model->type !== 'admin';
         }

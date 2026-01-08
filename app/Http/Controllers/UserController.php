@@ -18,6 +18,14 @@ class UserController extends Controller
         return Inertia::render('Users/Index', compact('users', 'roles'));
     }
 
+    public function create()
+    {
+        $this->authorize('create', User::class);
+        return Inertia::render('Users/Create', [
+            'roles' => Role::all(),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', User::class);
@@ -29,7 +37,7 @@ class UserController extends Controller
             'roles' => 'array',
         ]);
 
-        // Prevent clients from creating admin users
+        // Empêcher les clients de créer des utilisateurs administrateurs
         if ($request->user()->hasRole('client') && ($data['type'] ?? null) === 'admin') {
             abort(403);
         }
@@ -42,7 +50,7 @@ class UserController extends Controller
         ]);
 
         if (!empty($data['roles'])) {
-            // Roles may be provided as IDs or names; normalize to IDs
+            // Les rôles peuvent être fournis sous forme d'identifiants ou de noms ; normaliser en identifiants
             $roles = $data['roles'];
             $roleIds = [];
             if (count($roles) && is_string($roles[0])) {
@@ -52,61 +60,53 @@ class UserController extends Controller
             }
             $user->roles()->sync($roleIds);
         }
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User created successfully');
 
-        return redirect()->back()->with('success', 'User created');
+    }
+
+    public function edit(User $user)
+    {
+        $this->authorize('update', $user);
+
+        return Inertia::render('Users/Edit', [
+            'user' => $user->load('roles'),
+            'roles' => Role::all(),
+        ]);
     }
 
     public function update(Request $request, User $user)
     {
         $this->authorize('update', $user);
+
         $data = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
-            'type' => 'sometimes|required|in:admin,client,user',
+            'type' => 'required|in:admin,client,user',
             'roles' => 'array',
         ]);
 
-        // Prevent clients from promoting users to admin
-        if ($request->user()->hasRole('client') && array_key_exists('type', $data) && ($data['type'] === 'admin')) {
-            abort(403);
-        }
-
-        $user->update(array_filter([
-            'name' => $data['name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'type' => $data['type'] ?? null,
-        ]));
+        $user->update([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'type' => $data['type'],
+        ]);
 
         if (!empty($data['password'])) {
-            $user->password = Hash::make($data['password']);
-            $user->save();
+            $user->update([
+                'password' => Hash::make($data['password']),
+            ]);
         }
 
-        if (array_key_exists('roles', $data)) {
-            // Prevent clients from assigning admin role by id or name
-            if ($request->user()->hasRole('client')) {
-                $adminRole = \App\Models\Role::where('name', 'admin')->first();
-                $roles = $data['roles'] ?? [];
-                // Normalize names to ids if needed
-                if (count($roles) && is_string($roles[0])) {
-                    $roles = \App\Models\Role::whereIn('name', $roles)->pluck('id')->toArray();
-                }
-                if ($adminRole && in_array($adminRole->id, $roles)) {
-                    abort(403);
-                }
-                $user->roles()->sync($roles);
-            } else {
-                $roles = $data['roles'] ?? [];
-                if (count($roles) && is_string($roles[0])) {
-                    $roles = \App\Models\Role::whereIn('name', $roles)->pluck('id')->toArray();
-                }
-                $user->roles()->sync($roles);
-            }
+        if (isset($data['roles'])) {
+            $user->roles()->sync($data['roles']);
         }
 
-        return redirect()->back()->with('success', 'User updated');
+        return Inertia::location(route('users.index'));
     }
+
 
     public function destroy(User $user)
     {
