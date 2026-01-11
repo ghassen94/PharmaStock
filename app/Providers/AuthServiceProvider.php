@@ -16,7 +16,9 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         // 'App\\Models\\Model' => 'App\\Policies\\ModelPolicy',
         'App\\Models\\User' => 'App\\Policies\\UserPolicy',
-        'App\\Models\\Role' => 'App\\Policies\\RolePolicy',        'App\Models\Permission' => 'App\Policies\PermissionPolicy',    ];
+        'App\\Models\\Role' => 'App\\Policies\\RolePolicy',        
+        'App\Models\Permission' => 'App\Policies\PermissionPolicy',    
+    ];
 
     /**
      * Register any authentication / authorization services.
@@ -28,6 +30,13 @@ class AuthServiceProvider extends ServiceProvider
         Gate::before(function (User $user, $ability) {
             // Admins have all abilities
             if ($user->type === 'admin') {
+                return true;
+            }
+
+            // If the user has a role that grants a permission matching the ability string,
+            // allow it dynamically. This makes $user->can('product.view') work when the
+            // permission is assigned to one of the user's roles.
+            if (method_exists($user, 'hasPermission') && $user->hasPermission($ability)) {
                 return true;
             }
         });

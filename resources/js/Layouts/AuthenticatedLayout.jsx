@@ -5,7 +5,14 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const page = usePage();
+    const user = page.props.auth.user;
+    const abilities = page.props.abilities || {};
+    const roles = abilities.roles || [];
+    const permissions = abilities.permissions || [];
+
+    const isAdmin = (user && (user.type === 'admin' || roles.includes('admin')));
+    const can = (perm) => isAdmin || permissions.includes(perm);
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -16,13 +23,58 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
+                            <div className="flex shrink-0 items-center">
+                                <Link href={route('dashboard')}>
+                                    <span className="text-xl font-bold text-indigo-600">PharmaStock</span>
+                                </Link>
+                            </div>
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
-                                    href={route('users.index')}
-                                    active={route().current('users.index')}
+                                    href={route('dashboard')}
+                                    active={route().current('dashboard')}
                                 >
-                                    Users
+                                    Dashboard
                                 </NavLink>
+                                {(isAdmin || roles.includes('client')) && (
+                                    <NavLink
+                                        href={route('users.index')}
+                                        active={route().current('users.*')}
+                                    >
+                                        Users
+                                    </NavLink>
+                                )}
+                                {can('role.manage') && (
+                                    <NavLink
+                                        href={route('roles.index')}
+                                        active={route().current('roles.*')}
+                                    >
+                                        Roles
+                                    </NavLink>
+                                )}
+                                {can('permission.manage') && (
+                                    <NavLink
+                                        href={route('permissions.index')}
+                                        active={route().current('permissions.*')}
+                                    >
+                                        Permissions
+                                    </NavLink>
+                                )}
+                                {can('category.view') && (
+                                    <NavLink
+                                        href={route('categories.index')}
+                                        active={route().current('categories.*')}
+                                    >
+                                        Categories
+                                    </NavLink>
+                                )}
+                                {can('product.view') && (
+                                    <NavLink
+                                        href={route('products.index')}
+                                        active={route().current('products.*')}
+                                    >
+                                        Products
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -122,11 +174,51 @@ export default function AuthenticatedLayout({ header, children }) {
                 >
                     <div className="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
-                                href={route('users.index')}
-                                active={route().current('users.index')}
-                            >
-                            Users
+                            href={route('dashboard')}
+                            active={route().current('dashboard')}
+                        >
+                            Dashboard
                         </ResponsiveNavLink>
+                        {(isAdmin || roles.includes('client')) && (
+                            <ResponsiveNavLink
+                                href={route('users.index')}
+                                active={route().current('users.*')}
+                            >
+                                Users
+                            </ResponsiveNavLink>
+                        )}
+                        {can('role.manage') && (
+                            <ResponsiveNavLink
+                                href={route('roles.index')}
+                                active={route().current('roles.*')}
+                            >
+                                Roles
+                            </ResponsiveNavLink>
+                        )}
+                        {can('permission.manage') && (
+                            <ResponsiveNavLink
+                                href={route('permissions.index')}
+                                active={route().current('permissions.*')}
+                            >
+                                Permissions
+                            </ResponsiveNavLink>
+                        )}
+                        {can('category.view') && (
+                            <ResponsiveNavLink
+                                href={route('categories.index')}
+                                active={route().current('categories.*')}
+                            >
+                                Categories
+                            </ResponsiveNavLink>
+                        )}
+                        {can('product.view') && (
+                            <ResponsiveNavLink
+                                href={route('products.index')}
+                                active={route().current('products.*')}
+                            >
+                                Products
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

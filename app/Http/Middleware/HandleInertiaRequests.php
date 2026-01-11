@@ -34,6 +34,27 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Share the current user's roles and permissions (names) so the frontend can
+            // show/hide UI elements without extra requests.
+            'abilities' => function () use ($request) {
+                $user = $request->user();
+                if (! $user) {
+                    return [];
+                }
+
+                $roles = $user->roles()->pluck('name')->toArray();
+
+                $permissions = $user->roles()->with('permissions')
+                    ->get()
+                    ->flatMap(function ($r) {
+                        return $r->permissions->pluck('name');
+                    })->unique()->values()->toArray();
+
+                return [
+                    'roles' => $roles,
+                    'permissions' => $permissions,
+                ];
+            },
         ];
     }
 }

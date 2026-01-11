@@ -15,12 +15,24 @@ class PermissionController extends Controller
         return Inertia::render('Permissions/Index', compact('permissions'));
     }
 
+    public function create()
+    {
+        $this->authorize('create', Permission::class);
+        return Inertia::render('Permissions/Create');
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', Permission::class);
         $request->validate(['name' => 'required|string|unique:permissions,name']);
         Permission::create(['name' => $request->name]);
-        return redirect()->back()->with('success', 'Permission created');
+        return redirect()->route('permissions.index')->with('success', 'Permission created');
+    }
+
+    public function edit(Permission $permission)
+    {
+        $this->authorize('update', $permission);
+        return Inertia::render('Permissions/Edit', compact('permission'));
     }
 
     public function update(Request $request, Permission $permission)
@@ -28,7 +40,7 @@ class PermissionController extends Controller
         $this->authorize('update', $permission);
         $request->validate(['name' => 'required|string|unique:permissions,name,' . $permission->id]);
         $permission->update(['name' => $request->name]);
-        return redirect()->back()->with('success', 'Permission updated');
+        return Inertia::location(route('permissions.index'));
     }
 
     public function destroy(Permission $permission)

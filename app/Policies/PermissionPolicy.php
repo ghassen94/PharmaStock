@@ -10,28 +10,38 @@ class PermissionPolicy
 {
     use HandlesAuthorization;
 
+    public function before(User $user): ?bool
+    {
+        // Admin = accès total
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('admin') || $user->hasPermission('permission.manage');
+        return $user->can('permission.manage');
     }
 
     public function view(User $user, Permission $permission): bool
     {
-        return $this->viewAny($user);
+        return $user->can('permission.manage');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin') || $user->hasPermission('permission.manage');
+        return $user->can('permission.manage');
     }
 
     public function update(User $user, Permission $permission): bool
     {
-        return $this->create($user);
+        return $user->can('permission.manage');
     }
 
     public function delete(User $user, Permission $permission): bool
     {
-        return $this->create($user);
+        return $user->can('permission.manage');
     }
 }

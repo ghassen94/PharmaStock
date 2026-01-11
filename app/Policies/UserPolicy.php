@@ -9,42 +9,64 @@ class UserPolicy
 {
     use HandlesAuthorization;
 
+    public function before(User $user): ?bool
+    {
+        // l'Admin a un accès total
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('admin') || $user->hasRole('client');
+        return $user->hasRole('client');
     }
 
     public function view(User $user, User $model): bool
     {
-        // Les utilisateurs peuvent se voir eux-mêmes, ainsi que les clients/administrateurs, selon leur type.
-        if ($user->id === $model->id) return true;
-        if ($user->hasRole('admin')) return true;
-        if ($user->hasRole('client') && $model->type !== 'admin') return true;
+        // Un utilisateur peut toujours se voir lui-même
+        if ($user->id === $model->id) {
+            return true;
+        }
+
+        // le Client peut voir users & clients (pas admins)
+        if ($user->hasRole('client')) {
+            return !$model->hasRole('admin');
+        }
+
         return false;
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin') || $user->hasRole('client');
+        return $user->hasRole('client');
     }
 
     public function update(User $user, User $model): bool
     {
-        if ($user->hasRole('admin')) return true;
-        if ($user->hasRole('client') && $model->type !== 'admin') return true;
+        // Le Client ne touche jamais aux admins
+        if ($model->hasRole('admin')) {
+            return false;
+        }
+
+        // Le Client peut modifier users & clients
+        if ($user->hasRole('client')) {
+            return true;
+        }
+
+        // Self-update
         return $user->id === $model->id;
     }
 
     public function delete(User $user, User $model): bool
     {
-        // Les administrateurs peuvent supprimer n'importe qui
-        if ($user->hasRole('admin')) return true;
-
-        // Les clients ne peuvent pas supprimer les administrateurs.
-        if ($user->hasRole('client')) {
-            return $model->type !== 'admin';
+        // le Client ne peut jamais supprimer un admin
+        if ($model->hasRole('admin')) {
+            return false;
         }
 
-        return false;
+        return $user->hasRole('client');
     }
 }
